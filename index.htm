@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quizify — Modern Quiz Experience</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg-1: #071021;
+      --bg-2: #0b1220;
+      --glass: rgba(255,255,255,0.06);
+      --muted: #9aa4b2;
+      --accent-a: #7c5cff;
+      --accent-b: #00d4ff;
+      --card-bg: rgba(255,255,255,0.04);
+      --radius: 14px;
+      --soft-shadow: 0 8px 30px rgba(2,6,23,0.55);
+      --glass-border: rgba(255,255,255,0.06);
+      --text: #e6eef8;
+      --success: #2dd4bf;
+      --danger: #ff6b6b;
+      --transition: 320ms cubic-bezier(.2,.9,.3,1);
+      --ripple-color: rgba(255,255,255,0.18);
+      --parallax-speed: 0.45;
+      --skeleton: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    }
+
+    [data-theme="light"]{
+      --bg-1: #f6f8fb;
+      --bg-2: #eef3fb;
+      --glass: rgba(2,6,23,0.04);
+      --card-bg: rgba(2,6,23,0.04);
+      --glass-border: rgba(2,6,23,0.06);
+      --text: #071021;
+      --muted: #4b5563;
+      --ripple-color: rgba(2,6,23,0.06);
+      --soft-shadow: 0 10px 30px rgba(2,6,23,0.06);
+      --skeleton: linear-gradient(90deg, rgba(2,6,23,0.02), rgba(2,6,23,0.04), rgba(2,6,23,0.02));
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 60%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow-x:hidden;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* Parallax background */
+    .parallax-bg{
+      position:fixed;
+      inset:0;
+      z-index:-2;
+      background:
+        radial-gradient(1200px 600px at 10% 20%, rgba(124,92,255,0.12), transparent 10%),
+        radial-gradient(900px 500px at 90% 80%, rgba(0,212,255,0.08), transparent 10%);
+      transform: translateZ(0);
+      will-change: transform;
+      transition: transform 200ms linear;
+      pointer-events:none;
+      filter: blur(30px) saturate(1.05);
+    }
+
+    .wrap{
+      max-width:1100px;
+      margin:48px auto;
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      gap:28px;
+    }
+
+    header.app-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:18px;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--soft-shadow);
+      transition: transform var(--transition);
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:56px;height:56px;border-radius:12px;
+      background: linear-gradient(135deg,var(--accent-a),var(--accent-b));
+      display:grid;place-items:center;font-weight:800;color:#041025;font-family:Poppins,Inter;
+      box-shadow: 0 6px 20px rgba(124,92,255,0.12);
+    }
+    .brand h1{margin:0;font-size:18px;font-family:Poppins,Inter}
+    .brand p{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:10px;align-items:center}
+    .toggle{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--glass-border);background:transparent;cursor:pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+    .toggle:active{transform:translateY(1px)}
+    .mode-dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));box-shadow:0 6px 18px rgba(124,92,255,0.12)}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:28px;
+      align-items:start;
+    }
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+    .panel{
+      border-radius:var(--radius);
+      padding:20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--soft-shadow);
+      transition: transform var(--transition), opacity var(--transition);
+    }
+
+    .meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .progress{
+      height:12px;border-radius:999px;background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      overflow:hidden;border:1px solid var(--glass-border);
+    }
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));width:0%;transition:width 600ms cubic-bezier(.2,.9,.3,1)}
+
+    .question-card{
+      display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      border:1px solid var(--glass-border);
+      transition: transform 420ms cubic-bezier(.2,.9,.3,1), box-shadow 420ms ease, opacity 420ms ease;
+    }
+    .question-card:hover{transform:translateY(-6px)}
+    .q-head{display:flex;gap:12px;align-items:center}
+    .q-num{width:48px;height:48px;border-radius:10px;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));display:grid;place-items:center;font-weight:700;color:#041025}
+    .q-text{font-size:18px;font-weight:600}
+    .q-image{width:100%;height:220px;border-radius:10px;overflow:hidden;display:block;object-fit:cover;transition:transform 420ms ease}
+    .q-image.zoom:hover{transform:scale(1.06) translateY(-4px)}
+
+    .options{display:grid;gap:10px}
+    .option{
+      padding:12px 14px;border-radius:10px;border:1px solid var(--glass-border);background:var(--card-bg);cursor:pointer;display:flex;align-items:center;gap:12px;transition:transform 220ms ease, box-shadow 220ms ease;
+      position:relative;overflow:hidden;
+    }
+    .option:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.12)}
+    .option.correct{outline:2px solid rgba(45,212,191,0.12);box-shadow:0 8px 30px rgba(45,212,191,0.06)}
+    .option.wrong{outline:2px solid rgba(255,107,107,0.08);opacity:0.9}
+    .option.selected{box-shadow:0 10px 30px rgba(124,92,255,0.06);transform:translateY(-4px)}
+    .option .label{font-weight:600}
+    .option .meta{margin-left:auto;color:var(--muted);font-size:13px}
+
+    .sidebar{display:flex;flex-direction:column;gap:14px}
+    .card-mini{padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border:1px solid var(--glass-border);backdrop-filter: blur(6px)}
+    .stat{display:flex;gap:12px;align-items:center}
+    .stat .num{font-weight:800;font-size:20px;color:var(--accent-a)}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid transparent;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));color:#041025;font-weight:700;cursor:pointer;position:relative;overflow:hidden;
+      transition:transform 160ms ease, box-shadow 160ms ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.ghost{background:transparent;border:1px solid var(--glass-border);color:var(--text);font-weight:600}
+    .btn.small{padding:8px 10px;font-size:14px;border-radius:8px}
+
+    .ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple 600ms linear;pointer-events:none;background:var(--ripple-color)}
+    @keyframes ripple{to{transform:scale(4);opacity:0}}
+
+    .skeleton{border-radius:10px;background:var(--skeleton);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity 720ms cubic-bezier(.2,.9,.3,1), transform 720ms cubic-bezier(.2,.9,.3,1)}
+    .reveal.visible{opacity:1;transform:none}
+
+    footer{margin-top:40px;text-align:center;color:var(--muted);font-size:13px}
+
+    .muted{color:var(--muted)}
+    .center{display:flex;align-items:center;justify-content:center}
+
+    @media (max-width:520px){
+      .q-num{width:40px;height:40px}
+      .q-text{font-size:16px}
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="parallax-bg" id="parallax"></div>
+
+  <div class="wrap">
+    <header class="app-header reveal">
+      <div class="brand">
+        <div class="logo">QZ</div>
+        <div>
+          <h1>Quizify</h1>
+          <p>Fast, modern quizzes — learn by doing</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="center muted small">Dark / Light</div>
+        <button id="themeToggle" class="toggle" aria-label="Toggle theme">
+          <span class="mode-dot" aria-hidden="true"></span>
+          <span class="muted small" id="themeLabel">Dark</span>
+        </button>
+        <button id="restartBtn" class="btn ghost small">Restart</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel reveal" id="quizPanel" aria-live="polite">
+        <div class="meta-row">
+          <div>
+            <div class="muted small">Topic</div>
+            <div style="font-weight:800">General Knowledge</div>
+          </div>
+          <div style="width:260px">
+            <div class="muted small">Progress</div>
+            <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+          </div>
+        </div>
+
+        <div id="skeletonWrap">
+          <div class="question-card">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="skeleton" style="width:48px;height:48px;border-radius:10px"></div>
+              <div style="flex:1">
+                <div class="skeleton" style="height:18px;width:60%;border-radius:8px"></div>
+                <div style="height:8px"></div>
+                <div class="skeleton" style="height:12px;width:40%;border-radius:8px"></div>
+              </div>
+            </div>
+            <div class="skeleton" style="height:180px;border-radius:10px"></div>
+            <div style="display:grid;gap:10px">
+              <div class="skeleton" style="height:48px;border-radius:10px"></div>
+              <div class="skeleton" style="height:48px;border-radius:10px"></div>
+              <div class="skeleton" style="height:48px;border-radius:10px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="questionRoot" style="display:none"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+          <div class="muted small" id="timerLabel">—</div>
+          <div style="display:flex;gap:10px">
+            <button id="prevBtn" class="btn ghost small">Previous</button>
+            <button id="showAnswers" class="btn ghost small">Show Answer</button>
+            <button id="nextBtn" class="btn small">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="card-mini reveal">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="muted small">Score</div>
+              <div class="num" id="scoreNum">0</div>
+            </div>
+            <div>
+              <div class="muted small">Question</div>
+              <div class="num" id="qIndex">0 / 0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-mini reveal">
+          <div class="muted small">Quick Controls</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="shuffleBtn" class="btn ghost small">Shuffle</button>
+            <button id="finishNow" class="btn ghost small">Finish Now</button>
+          </div>
+        </div>
+
+        <div class="card-mini reveal">
+          <div class="muted small">About</div>
+          <p class="muted small" style="margin:8px 0 0">Clean minimal quiz UI with modern interactions, animations and accessibility in mind.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="reveal">
+      <div class="muted small">Made with care • Glassmorphism • Parallax • Ripple • Skeletons</div>
+    </footer>
+  </div>
+
+  <div id="toast" style="position:fixed;right:20px;bottom:20px;background:linear-gradient(90deg,var(--accent-a),var(--accent-b));color:#041025;padding:12px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(2,6,23,0.6);opacity:0;transition:opacity 240ms"></div>
+
+  <script>
+    /*
+      Final requirements implemented:
+      - Show Answer button highlights correct option for current question.
+      - When all 20 questions are finished a message shows "All questions are finished".
+      - After completing all 20 questions the score is visible (results screen).
+      - Selecting an answer highlights it (selected state) and shows correct/wrong immediately.
+      - When the site/tab is exited the test will begin from the beginning on next open (sessionStorage used).
+      - All previous UI features preserved (dark/light, glass, ripple, skeletons, parallax, etc.).
+    */
+
+    // QUESTIONS: 20 items with correct answer indices (0-based)
+    const QUESTIONS = [
+      { id:'q1', text:'What does HTML stand for?', choices:['Hyper Trainer Marking Language','Hyper Text Markup Language','Hyper Text Marketing Language','Hyper Tool Multi Language'], answer:1 },
+      { id:'q2', text:'Which planet is known as the Red Planet?', choices:['Earth','Venus','Mars','Jupiter'], answer:2 },
+      { id:'q3', text:'What does CSS do?', choices:['Adds logic','Styles the webpage','Stores data','Connects database'], answer:1 },
+      { id:'q4', text:'Which language is used for web interactivity?', choices:['Python','Java','JavaScript','C++'], answer:2 },
+      { id:'q5', text:'Who is known as the father of computers?', choices:['Alan Turing','Charles Babbage','Elon Musk','Bill Gates'], answer:1 },
+      { id:'q6', text:'What is the capital of India?', choices:['Mumbai','Delhi','New Delhi','Kolkata'], answer:2 },
+      { id:'q7', text:'Which tag is used for images in HTML?', choices:['<pic>','<img>','<image>','<src>'], answer:1 },
+      { id:'q8', text:'Which company developed JavaScript?', choices:['Microsoft','Netscape','Google','Apple'], answer:1 },
+      { id:'q9', text:'What is 2 + 2 × 2?', choices:['6','8','4','10'], answer:0 },
+      { id:'q10', text:'Which is the largest ocean?', choices:['Atlantic','Indian','Pacific','Arctic'], answer:2 },
+      { id:'q11', text:'What does API stand for?', choices:['Application Programming Interface','Advanced Program Integration','Applied Programming Internet','Application Process Interface'], answer:0 },
+      { id:'q12', text:'Which HTML tag is used for links?', choices:['<link>','<a>','<href>','<url>'], answer:1 },
+      { id:'q13', text:'Which country invented paper?', choices:['India','Egypt','China','Greece'], answer:2 },
+      { id:'q14', text:'What is the boiling point of water?', choices:['90°C','100°C','80°C','120°C'], answer:1 },
+      { id:'q15', text:'Which symbol is used for comments in JavaScript?', choices:['//','<!-- -->','**','##'], answer:0 },
+      { id:'q16', text:'Which device is used to input data?', choices:['Monitor','Printer','Keyboard','Speaker'], answer:2 },
+      { id:'q17', text:'What does URL stand for?', choices:['Universal Resource Locator','Uniform Resource Locator','Unique Resource Link','Uniform Reference Link'], answer:1 },
+      { id:'q18', text:'Which is the fastest land animal?', choices:['Lion','Tiger','Cheetah','Leopard'], answer:2 },
+      { id:'q19', text:'Which CSS property changes text color?', choices:['font-color','text-style','color','text-color'], answer:2 },
+      { id:'q20', text:'Which is NOT a programming language?', choices:['Python','HTML','Java','C++'], answer:1 }
+    ];
+
+    // Use sessionStorage so closing the tab/browser resets the test (requirement)
+    const STORAGE_KEY = 'quiz_state_v1_session';
+
+    // State
+    let state = { questions: [], index: 0, answers: {}, score: 0 };
+
+    // DOM refs
+    const skeletonWrap = document.getElementById('skeletonWrap');
+    const questionRoot = document.getElementById('questionRoot');
+    const progBar = document.getElementById('progBar');
+    const scoreNum = document.getElementById('scoreNum');
+    const qIndex = document.getElementById('qIndex');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const showAnswersBtn = document.getElementById('showAnswers');
+    const timerLabel = document.getElementById('timerLabel');
+    const themeToggle = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const restartBtn = document.getElementById('restartBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const finishNow = document.getElementById('finishNow');
+    const parallax = document.getElementById('parallax');
+    const toastEl = document.getElementById('toast');
+
+    // helpers
+    const uid = () => 'id' + Math.random().toString(36).slice(2,9);
+
+    // On load show skeleton then initialize
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        initQuiz();
+        skeletonWrap.style.display = 'none';
+        questionRoot.style.display = 'block';
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+      }, 600);
+    });
+
+    // Initialize quiz state (sessionStorage)
+    function initQuiz(){
+      state.questions = QUESTIONS.map(q => ({...q}));
+      // restore from sessionStorage if present
+      try{
+        const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null');
+        if(saved && saved.questions && saved.questions.length === state.questions.length){
+          state = saved;
+        } else {
+          state.index = 0; state.answers = {}; state.score = 0;
+          saveState();
+        }
+      }catch(e){
+        state.index = 0; state.answers = {}; state.score = 0; saveState();
+      }
+      renderQuestion();
+      updateSidebar();
+      attachHandlers();
+    }
+
+    // Render current question
+    function renderQuestion(){
+      const q = state.questions[state.index];
+      if(!q) return;
+      const pct = Math.round((state.index / state.questions.length) * 100);
+      progBar.style.width = pct + '%';
+      qIndex.textContent = `${state.index + 1} / ${state.questions.length}`;
+
+      questionRoot.innerHTML = '';
+      const card = document.createElement('div');
+      card.className = 'question-card reveal';
+      card.innerHTML = `
+        <div class="q-head">
+          <div class="q-num">${state.index + 1}</div>
+          <div class="q-text">${escapeHtml(q.text)}</div>
+        </div>
+        <div class="options"></div>
+      `;
+      questionRoot.appendChild(card);
+
+      const optionsWrap = card.querySelector('.options');
+      q.choices.forEach((c, i) => {
+        const opt = document.createElement('div');
+        opt.className = 'option';
+        opt.dataset.index = i;
+        opt.innerHTML = `<div class="label">${String.fromCharCode(65 + i)}. ${escapeHtml(c)}</div><div class="meta muted"></div>`;
+        opt.addEventListener('click', (ev) => {
+          createRipple(ev, opt);
+          selectOption(q.id, i, opt);
+        });
+        optionsWrap.appendChild(opt);
+      });
+
+      // if answered, mark selection and show correct/wrong
+      const sel = state.answers[q.id];
+      if(typeof sel === 'number'){
+        markSelection(card, sel, q.answer);
+      }
+
+      requestAnimationFrame(()=> card.classList.add('visible'));
+    }
+
+    // Handle selecting an option
+    function selectOption(qid, idx, optEl){
+      const q = state.questions[state.index];
+      if(!q) return;
+      // store selection in session state
+      state.answers[qid] = idx;
+      // visually mark selection and correctness
+      markSelection(optEl.closest('.question-card'), idx, q.answer);
+      recalcScore();
+      saveState();
+      updateSidebar();
+
+      // If all answered, show message and results
+      if(allAnswered()){
+        showToast('All questions are finished');
+        // small delay so user sees toast then results
+        setTimeout(() => {
+          showResults();
+        }, 700);
+      }
+    }
+
+    // Mark selection: selected + correct/wrong
+    function markSelection(cardEl, selectedIdx, correctIdx){
+      const opts = Array.from(cardEl.querySelectorAll('.option'));
+      opts.forEach((o, i) => {
+        o.classList.remove('correct','wrong','selected');
+        if(i === selectedIdx){
+          o.classList.add('selected');
+          if(i === correctIdx) o.classList.add('correct');
+          else o.classList.add('wrong');
+        } else {
+          // keep other options neutral
+        }
+      });
+    }
+
+    // Recalculate score
+    function recalcScore(){
+      let s = 0;
+      state.questions.forEach(q => {
+        const sel = state.answers[q.id];
+        if(typeof sel === 'number' && sel === q.answer) s++;
+      });
+      state.score = s;
+      scoreNum.textContent = s;
+    }
+
+    // Update sidebar numbers
+    function updateSidebar(){
+      scoreNum.textContent = state.score;
+      qIndex.textContent = `${state.index + 1} / ${state.questions.length}`;
+    }
+
+    // Prev / Next handlers
+    prevBtn.addEventListener('click', () => {
+      if(state.index > 0){ state.index--; renderQuestion(); updateSidebar(); saveState(); }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if(state.index < state.questions.length - 1){
+        state.index++; renderQuestion(); updateSidebar(); saveState();
+      } else {
+        // at end
+        if(allAnswered()){
+          showToast('All questions are finished');
+          setTimeout(() => showResults(), 600);
+        } else {
+          showToast('You reached the end. Some questions are unanswered.');
+        }
+      }
+    });
+
+    // Show Answer button: reveal correct option for current question
+    showAnswersBtn.addEventListener('click', () => {
+      const q = state.questions[state.index];
+      if(!q) return;
+      const card = document.querySelector('.question-card');
+      if(!card) return;
+      const opts = Array.from(card.querySelectorAll('.option'));
+      opts.forEach((o, i) => {
+        o.classList.remove('wrong','correct');
+        if(i === q.answer) o.classList.add('correct');
+        const sel = state.answers[q.id];
+        if(typeof sel === 'number' && sel === i && i !== q.answer) o.classList.add('wrong');
+      });
+      showToast('Correct answer highlighted');
+    });
+
+    // Show results screen
+    function showResults(){
+      questionRoot.innerHTML = '';
+      const res = document.createElement('div');
+      res.className = 'question-card reveal';
+      res.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2 style="margin:0">Quiz Complete</h2>
+            <div class="muted small">Your score</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800;font-size:28px;color:var(--accent-a)">${state.score} / ${state.questions.length}</div>
+            <div class="muted small">${Math.round((state.score/state.questions.length)*100)}%</div>
+          </div>
+        </div>
+        <div style="margin-top:14px" class="muted small">Correct answers are shown below regardless of your selection.</div>
+        <div style="margin-top:12px" id="reviewList"></div>
+        <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+          <button id="retake" class="btn ghost small">Retake</button>
+          <button id="finishClose" class="btn small">Close</button>
+        </div>
+      `;
+      questionRoot.appendChild(res);
+
+      const reviewList = res.querySelector('#reviewList');
+      state.questions.forEach((q, i) => {
+        const item = document.createElement('div');
+        item.className = 'card-mini';
+        item.style.marginTop = '10px';
+        const sel = state.answers[q.id];
+        const correct = q.answer;
+        item.innerHTML = `
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:10px;height:10px;border-radius:50%;margin-top:6px;background:${sel===correct? 'var(--success)' : 'var(--danger)'}"></div>
+            <div style="flex:1">
+              <div style="font-weight:700">${i+1}. ${escapeHtml(q.text)}</div>
+              <div class="muted small" style="margin-top:6px">Your answer: ${typeof sel === 'number' ? escapeHtml(q.choices[sel]) : '<em>Not answered</em>'}</div>
+              <div style="margin-top:6px"><strong>Correct answer:</strong> ${escapeHtml(q.choices[correct])}</div>
+            </div>
+          </div>
+        `;
+        reviewList.appendChild(item);
+      });
+
+      res.querySelector('#retake').addEventListener('click', () => {
+        state.answers = {}; state.score = 0; state.index = 0; saveState(); renderQuestion(); updateSidebar(); showToast('Retake started');
+      });
+      res.querySelector('#finishClose').addEventListener('click', () => {
+        showToast('Results shown');
+      });
+    }
+
+    // Save state to sessionStorage (so closing tab resets)
+    function saveState(){
+      try{ sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+    }
+
+    // Theme toggle
+    themeToggle.addEventListener('click', () => {
+      const root = document.body;
+      const current = root.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      themeLabel.textContent = next[0].toUpperCase() + next.slice(1);
+      themeToggle.animate([{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:220});
+    });
+
+    // Restart (clears session)
+    restartBtn.addEventListener('click', () => {
+      sessionStorage.removeItem(STORAGE_KEY);
+      state = { questions: QUESTIONS.map(q=>({...q})), index:0, answers:{}, score:0 };
+      saveState();
+      renderQuestion(); updateSidebar(); showToast('Progress cleared');
+    });
+
+    // Shuffle questions
+    shuffleBtn.addEventListener('click', () => {
+      state.questions = shuffleArray(state.questions);
+      state.index = 0; state.answers = {}; state.score = 0; saveState(); renderQuestion(); updateSidebar(); showToast('Questions shuffled');
+    });
+
+    // Finish Now button
+    finishNow.addEventListener('click', () => {
+      showToast('Finishing quiz...');
+      setTimeout(() => showResults(), 500);
+    });
+
+    // Ripple effect
+    function createRipple(ev, container){
+      const rect = container.getBoundingClientRect();
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height) * 0.8;
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (ev.clientX - rect.left - size/2) + 'px';
+      r.style.top = (ev.clientY - rect.top - size/2) + 'px';
+      container.appendChild(r);
+      r.addEventListener('animationend', ()=> r.remove());
+    }
+
+    function shuffleArray(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]] = [a[j],a[i]];
+      }
+      return a;
+    }
+
+    // Save on unload to keep session behavior consistent (sessionStorage persists only per tab)
+    window.addEventListener('beforeunload', () => {
+      // intentionally keep sessionStorage so closing the tab clears it automatically;
+      // but ensure we persist current state for the session
+      saveState();
+    });
+
+    function showToast(msg, ms=1600){
+      toastEl.textContent = msg;
+      toastEl.style.opacity = '1';
+      clearTimeout(window._tTimer);
+      window._tTimer = setTimeout(()=>{ toastEl.style.opacity='0'; }, ms);
+    }
+
+    function attachHandlers(){
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowRight') nextBtn.click();
+        if(e.key === 'ArrowLeft') prevBtn.click();
+      });
+    }
+
+    // Scroll reveal & parallax
+    const revealEls = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(en => { if(en.isIntersecting) en.target.classList.add('visible'); });
+    }, {threshold: 0.12});
+    revealEls.forEach(el => io.observe(el));
+
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      parallax.style.transform = `translateY(${y * -0.45}px)`;
+    }, {passive:true});
+
+    // Utility
+    function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+    function allAnswered(){
+      const total = state.questions.length;
+      const answeredCount = Object.keys(state.answers).length;
+      return answeredCount >= total;
+    }
+
+    // Expose for debugging
+    window._quiz = { state, QUESTIONS };
+  </script>
+</body>
+</html>
